@@ -87,9 +87,24 @@ def add_table(parameter):
         table_handle.refresh_schema(parameter, table_name)
 
 
+def publish_model(parameter: dict):
+    _logger.info(f"Publishing the Model {parameter['datamodel_name']}")
+    endpoint, headers = get_endpoint('ecm')
+    data = {
+        "query": "mutation publishElasticube($elasticubeOid: UUID!) {\n  publishElasticube(elasticubeOid: $elasticubeOid)\n}\n",
+        "variables": {
+            "elasticubeOid": parameter['datamodel_oid']
+        },
+        "operationName": "publishElasticube"
+    }
+    response = requests.post(url=endpoint, json=data, headers=headers)
+    response.raise_for_status()
+    return response.status_code
+
+
 def automate_cube_creation(parameter: dict):
     _logger.info("Automated Creation based on the parameters")
     parameter['datamodel_oid'] = create_live_cube(parameter)
     parameter['dataset_oid'] = create_live_dataset(parameter)
     add_table(parameter)
-
+    print(publish_model(parameter))

@@ -5,23 +5,27 @@ from app.api.live_models import automate_cube_creation
 def main():
     tenant = input("Enter the tenant name: ")
     case = input("Enter the use case: ")
-    dev = input("Enter the environment (dev/ stage/ prod): ")
+    env = input("Enter the environment (dev/ test/ stage/ prod): ")
     model_name = input("(Note: this will be added at the last of the datamodel name) \nEnter the model name: ")
-    print("Enter the table names using comma as seperator:")
-    table_list = list(map(str, input().split(', ')))
+    region = input("Enter the region (US/ EU): ")
+    choice = input("Choose the table number: \n1. sales \n2. npc \n3. plc\n")
 
-    parameter = {
-        "datamodel_name": f"{tenant}_{case}_{dev}_{model_name}",
-        "dataset_name": f"{tenant}_{case}_{dev}_{model_name}_set",
-        "provider": "RedShift",
-        "table_list": table_list
+    table: dict = {
+        "sales": ["v_fact_sales_bi"],
+        "npc": ["v_npcomparison_migration_fact_bi"],
+        "plc": ["v_phcomparison_fact_bi"]
     }
 
-    password_detail = password_details(tenant)
+    parameter = {
+        "datamodel_name": f"{tenant}_{case}_{env}_{model_name}",
+        "dataset_name": f"{tenant}_{case}_{env}_{model_name}",
+        "provider": "RedShift",
+        "table_list": table[choice]
+    }
 
-    parameter.update(password_detail)
-    # automate_cube_creation(parameter)
-    print(parameter)
+    parameter.update(password_details(tenant, case, env))
 
-if __name__ == '__main__':
-    main()
+    automate_cube_creation(parameter)
+
+
+main()

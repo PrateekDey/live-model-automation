@@ -79,6 +79,7 @@ def update_base_table(parameter: dict, table_name: str, column_list: list):
     response = requests.post(url=endpoint, json=data, headers=headers)
     response.raise_for_status()
     _logger.info(f"Table {table_name} is refreshed", table_oid=parameter[table_name])
+    response.raise_for_status()
     return response.status_code
 
 
@@ -87,16 +88,3 @@ def refresh_schema(parameter: dict, table_name: str):
     columns_list = orient_columns(meta_data['columns'])
     print(update_base_table(parameter, table_name, columns_list))
 
-# params = {
-#     "datamodel_name": "agco_pm_dev_testmodel",
-#     "dataset_name": "agco_pm_dev_testset",
-#     "server": "syncron-dw-dev.cjeppnlvxazb.us-east-1.redshift.amazonaws.com:5439",
-#     "username": "agco_price_datalake_dev_datalake_user",
-#     "password": "kGi57&n:4EjGBGpr",
-#     "defaultdatabase": "agco",
-#     "database": "agco",
-#     "provider": "RedShift",
-#     "schema": "agco_price_datalake_dev",
-#     "table_list": ["v_fact_sales_bi, v_phcomparison_fact_bi"]
-# }
-# refresh_schema(params, "v_fact_sales_bi")
