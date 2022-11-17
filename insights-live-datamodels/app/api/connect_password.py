@@ -16,7 +16,7 @@ def retrieve_values_from_password(password: dict):
     retrieved_password['username'] = password.get('UserName')
     retrieved_password['password'] = password.get('Password')
     retrieved_password['defaultdatabase'] = retrieved_password['database'] = server.split('/')[1]
-    retrieved_password['schema'] = (password.get('Description').split(':')[1])[:23]
+    #retrieved_password['schema'] = (password.get('Description').split(':')[1])[:23]
 
     return retrieved_password
 
@@ -48,9 +48,10 @@ def get_password(datalake_user: str):
         return None
 
 
-def password_details(tenant: str, case: str, env:str):
-    case1 = ''
-    if case == 'pm':
-        case1 = 'price_datalake'
-    datalake_user = f'{tenant}_{case1}_{env}_datalake_user'#agco_price_datalake_dev_datalake_user  #<tenant_name>_<usecase>_<datalake/env>
-    return get_password(datalake_user)
+def password_details(tenant: str, case: str, env: str):
+    datalake_user = f'{tenant}_{case}_{env}_datalake_user'
+    temp = {
+        'schema': f'{tenant}_{case}_{env}'
+    }
+    temp.update(get_password(datalake_user))
+    return temp
