@@ -13,9 +13,32 @@ def get_recent_connections():
     return response.json()[-1]
 
 
-def table_schema_data(parameter: dict, table_name: str):
-    conn_oid = get_recent_connections().get("oid")
+def list_tables(conn_id: str, parameter: dict):
+    raw_table_list = []
+    _logger.info(f"List the schema based on schema {parameter['schema']}")
+    endpoint, headers = get_endpoint('list_tables', conn_id)
+    data = {
+        "provider": parameter['provider'],
+        "connectionData": {
+            "connection": {
+                "ApiVersion": 2,
+                "Server": parameter["server"],
+                "UserName": parameter["username"],
+                "DefaultDatabase": parameter["defaultdatabase"],
+                "EncryptConnection": True,
+                "TrustServerCertificate": True,
+                "AdditionalParameters": "",
+                "Database": parameter["database"]
+            }
+        }
+    }
 
+    response = requests.post(url=endpoint, json=data, headers=headers)
+    [raw_table_list.append(i) for i in response.json() if i.get("schemaName") == parameter['schema']]
+    return raw_table_list
+
+
+def table_schema_data(conn_oid: str, parameter: dict, table_name: str):
     _logger.info('Fetching details of the table based on connection', connection_id=conn_oid)
     endpoint, headers = get_endpoint('table_schema_details', conn_oid)
     data = {
@@ -57,34 +80,32 @@ def orient_columns(column_list: list):
     return new_column_list
 
 
-def update_base_table(parameter: dict, table_name: str, column_list: list):
-    _logger.info("Updating the dummy table to the base table")
+def add_base_table(parameter: dict, table_name: str, table_oid: str, column_list: list):
+    _logger.info(f"Adding table {table_name} to the dataset")
     endpoint, headers = get_endpoint('ecm')
     data = {
-        "operationName": "updateBaseTableSchema",
-        "query": "mutation updateBaseTableSchema($elasticubeOid: UUID!, $table: TableInput!) {\n  table: updateBaseTableSchema(elasticubeOid: $elasticubeOid, table: $table) {\n    buildBehavior {\n      type\n      accumulativeConfig {\n        type\n        column\n        lastDays\n        keepOnlyDays\n        __typename\n      }\n      __typename\n    }\n    columns {\n      oid\n      id\n      name\n      type\n      size\n      precision\n      scale\n      hidden\n      indexed\n      isUpsertBy\n      __typename\n    }\n    tupleTransformations {\n      type\n      arguments\n      __typename\n    }\n    __typename\n  }\n}\n",
+        "operationName": "addTableToDataset",
+        "query": "mutation addTableToDataset($elasticubeOid: UUID!, $datasetOid: UUID!, $table: TableInput!) {\n  table: addTableToDataset(elasticubeOid: $elasticubeOid, datasetOid: $datasetOid, table: $table) {\n    oid\n    __typename\n  }\n}\n",
         "variables": {
             "elasticubeOid": parameter['datamodel_oid'],
+            "datasetOid": parameter['dataset_oid'],
             "table": {
                 "id": table_name,
                 "name": table_name,
-                "schemaName": parameter['schema'],
+                "oid": table_oid,
                 "hidden": False,
+                "schemaName": parameter['schema'],
+                "buildBehavior": {
+                    "type": "sync"
+                },
                 "columns": column_list,
-                "oid": parameter[table_name],
+                "tupleTransformations": [
+
+                ]
             }
-        },
+        }
     }
 
     response = requests.post(url=endpoint, json=data, headers=headers)
     response.raise_for_status()
-    _logger.info(f"Table {table_name} is refreshed", table_oid=parameter[table_name])
-    response.raise_for_status()
     return response.status_code
-
-
-def refresh_schema(parameter: dict, table_name: str):
-    meta_data = table_schema_data(parameter, table_name)
-    columns_list = orient_columns(meta_data['columns'])
-    print(update_base_table(parameter, table_name, columns_list))
-

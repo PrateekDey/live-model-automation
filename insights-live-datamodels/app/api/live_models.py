@@ -54,37 +54,21 @@ def create_live_dataset(parameter: dict):
 
 
 def add_table(parameter):
-    _logger.info(f'Adding tables {parameter["table_list"]}', datamodel_id=parameter['datamodel_oid'],
-                 dataset_id=parameter['dataset_oid'])
-    endpoint, headers = get_endpoint('create_live_table', parameter['datamodel_oid'], parameter['dataset_oid'])
-    for table_name in parameter['table_list']:
-        data = {
-            "id": table_name,
-            "name": table_name,
-            "columns": [{
-                "id": "c1",
-                "name": "c1",
-                "type": 8,
-                "size": 10,
-                "precision": 10,
-                "scale": 0,
-                "hidden": False,
-                "indexed": True,
-                "isUpsertBy": False
-            }],
-            "buildBehavior": {
-                "type": "sync",
-                "accumulativeConfig": None
-            },
-            "hidden": False,
-            "description": None
-        }
-        response = requests.post(url=endpoint, json=data, headers=headers)
-        response.raise_for_status()
-        _logger.info(f"Dummy table added with name {table_name}")
-        parameter[table_name] = response.json()['oid']
+    conn_oid = table_handle.get_recent_connections().get('oid')
+    table_list = []
+    raw_table_list = table_handle.list_tables(conn_oid, parameter)
+    for raw_table in raw_table_list:
+        table_list.append(raw_table.get('tableName'))
 
-        table_handle.refresh_schema(parameter, table_name)
+    [print(table) for table in table_list]
+    table_list = list(map(str.strip, (input("\nChoose the table: ").split(','))))
+
+    for table in table_list:
+        table_schema_details = table_handle.table_schema_data(conn_oid, parameter, table)
+        column_list = table_handle.orient_columns(table_schema_details.get('columns'))
+        table_oid = table_schema_details.get('oid')
+
+        table_handle.add_base_table(parameter, table, table_oid, column_list)
 
 
 def publish_model(parameter: dict):
@@ -107,4 +91,4 @@ def automate_cube_creation(parameter: dict):
     parameter['datamodel_oid'] = create_live_cube(parameter)
     parameter['dataset_oid'] = create_live_dataset(parameter)
     add_table(parameter)
-    print(publish_model(parameter))
+    publish_model(parameter)

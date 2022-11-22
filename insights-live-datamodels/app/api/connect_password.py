@@ -16,8 +16,6 @@ def retrieve_values_from_password(password: dict):
     retrieved_password['username'] = password.get('UserName')
     retrieved_password['password'] = password.get('Password')
     retrieved_password['defaultdatabase'] = retrieved_password['database'] = server.split('/')[1]
-    #retrieved_password['schema'] = (password.get('Description').split(':')[1])[:23]
-
     return retrieved_password
 
 
